@@ -11,3 +11,4 @@ IF CLAUDE-global.md NOT EXISTS:
 | Web Claude Code | CLAUDE-global.md                                     | + CLAUDE-sub.md |
 | Mac Mini CLI    | CLAUDE-global.md + ~/.claude/CLAUDE.md (3-tier 전용) | + CLAUDE-sub.md |
 
+
