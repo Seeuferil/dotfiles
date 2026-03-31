@@ -1,0 +1,53 @@
+name: Sync CLAUDE.md to all repos
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - CLAUDE.md
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repo:
+          - { name: CWriter, branch: main }
+          - { name: MaxTrans, branch: main }
+          - { name: GemsWriter, branch: main }
+          - { name: my-agent-framework, branch: main }
+          - { name: USum, branch: main }
+          - { name: AutoPostAgent, branch: main }
+          - { name: nexforge-translation, branch: master }
+          - { name: jetsync, branch: main }
+          - { name: subway-tracker, branch: main }
+          - { name: EmailV, branch: main }
+          - { name: FlightData, branch: main }
+          - { name: seeuferil.github.io, branch: main }
+
+    steps:
+      - name: Checkout dotfiles
+        uses: actions/checkout@v4
+
+      - name: Sync CLAUDE.md to ${{ matrix.repo.name }}
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git clone --depth=1 --branch ${{ matrix.repo.branch }} \
+            https://x-access-token:${GH_PAT}@github.com/Seeuferil/${{ matrix.repo.name }}.git target
+
+          cp CLAUDE.md target/CLAUDE.md
+          cd target
+
+          if git diff --quiet; then
+            echo "No changes — skip"
+            exit 0
+          fi
+
+          git add CLAUDE.md
+          git commit -m "chore: sync CLAUDE.md from dotfiles"
+          git push origin ${{ matrix.repo.branch }}
+          echo "✅ Pushed to ${{ matrix.repo.name }}"
