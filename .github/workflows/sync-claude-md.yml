@@ -10,6 +10,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         repo:
           - { name: CWriter, branch: main }
@@ -42,12 +43,11 @@ jobs:
           cp CLAUDE.md target/CLAUDE.md
           cd target
 
-          if git diff --quiet; then
+          git add CLAUDE.md
+          if git diff --cached --quiet; then
             echo "No changes — skip"
             exit 0
           fi
-
-          git add CLAUDE.md
           git commit -m "chore: sync CLAUDE.md from dotfiles"
           git push origin ${{ matrix.repo.branch }}
           echo "✅ Pushed to ${{ matrix.repo.name }}"
