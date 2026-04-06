@@ -1,0 +1,10 @@
+# Secrets
+*.env
+.env*
+secrets/
+
+# Logs (optional — only tracked explicitly)
+logs/*.jsonl
+
+# OS
+.DS_Store
