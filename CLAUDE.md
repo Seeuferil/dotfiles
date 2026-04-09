@@ -1,27 +1,27 @@
 # Global Rules
 
-## 환경 감지
+## Environment Detection
 
-| 환경 | 판별 기준 | 추가 로드 |
+| Environment | Detection Criteria | Additional Load |
 |---|---|---|
-| Mac Mini CLI | `~/.claude/CLAUDE.md` 존재 | Tier 3, LiveStatus |
-| Web Claude Code | 로컬 파일시스템 없음 | 없음 (이 파일만) |
-| Codespaces | `CODESPACES` 환경변수 | 없음 (이 파일만) |
+| Mac Mini CLI | `~/.claude/CLAUDE.md` exists | Tier 3, LiveStatus |
+| Web Claude Code | No local filesystem | None (this file only) |
+| Codespaces | `CODESPACES` env var present | None (this file only) |
 
-Mac Mini는 이 파일 로드 후 `~/.claude/CLAUDE.md`를 추가 적용.
+Mac Mini: load this file first, then apply `~/.claude/CLAUDE.md` on top.
 
 ---
 
-## LLM 라우팅 (하네스 전용)
+## LLM Routing (harness only)
 
-`/harness`, `/harness-run`, `/harness-check` 실행 시에만 적용.
-일반 대화·코딩은 Claude(Tier 1)가 직접 처리.
+Applies only when running `/harness`, `/harness-run`, `/harness-check`.
+For normal conversation and coding, Claude (Tier 1) handles directly.
 
-| Tier | Tool | 용도 | 환경 |
+| Tier | Tool | Purpose | Environment |
 |---|---|---|---|
-| 1 | Claude (Sonnet) | 계획·조율·코드 작성·판단 | 모든 환경 |
-| 2 | Gemini | 대형 코드베이스 전체 분석 | 모든 환경 |
-| 3 | LM Studio | 단순 반복 태스크 | Mac Mini 전용 |
+| 1 | Claude (Sonnet) | Planning, orchestration, code, judgment | All |
+| 2 | Gemini | Large codebase full analysis | All |
+| 3 | LM Studio | Simple repetitive tasks | Mac Mini only |
 
 ### Tier 2 → Gemini
 
@@ -29,50 +29,50 @@ Mac Mini는 이 파일 로드 후 `~/.claude/CLAUDE.md`를 추가 적용.
 Agent(subagent_type="gemini-analyzer", prompt="...")
 ```
 
-Codespaces에서 직접 호출 시:
+Direct call in Codespaces:
 ```bash
-~/.claude/scripts/gemini-ask.sh "프롬프트"
+~/.claude/scripts/gemini-ask.sh "prompt"
 ```
-(GEMINI_API_KEY 필요 — GitHub Codespaces Secrets에 설정)
+(Requires `GEMINI_API_KEY` — set in GitHub Codespaces Secrets)
 
-### Tier 3 → Mac Mini 전용
+### Tier 3 → Mac Mini only
 
-Web/Codespaces에서 Tier 3 불가 → Tier 1(Claude)이 직접 처리.
-
----
-
-## 하네스 패턴
-
-Plan-Do-Review — 모든 환경에서 동작:
-
-- **scout**: `Explore` subagent — 코드 분석 → spec JSON 생성
-- **patcher**: Claude(Tier 1) — spec 기반 구현
-- **verifier**: `Explore` + Bash — 검증
-
-하네스 템플릿: 프로젝트 `.claude/harness_templates/` 또는 `~/.claude/harness_templates/`
+Web/Codespaces cannot use Tier 3 → Claude (Tier 1) handles directly.
 
 ---
 
-## 커밋 메시지
+## Harness Pattern
+
+Plan-Do-Review — works in all environments:
+
+- **scout**: `Explore` subagent — analyze code → produce spec JSON
+- **patcher**: Claude (Tier 1) — implement from spec
+- **verifier**: `Explore` + Bash — validate
+
+Harness templates: project `.claude/harness_templates/` or `~/.claude/harness_templates/`
+
+---
+
+## Commit Messages
 
 - First line: `type: short summary` (max 72 chars, English)
-- Type: `feat` / `fix` / `chore` / `refactor` / `docs`
-- Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> 포함
-- Mac Mini: `gen-commit-msg.sh`(Tier 3) 우선, 실패 시 Claude 직접 작성
+- Types: `feat` / `fix` / `chore` / `refactor` / `docs`
+- Always include: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
+- Mac Mini: prefer `gen-commit-msg.sh` (Tier 3); fall back to Claude if it fails
 
 ---
 
-## 토큰 절약
+## Token Efficiency
 
-1. 대용량 XML/JSON 응답 → 파일 저장 후 경로만 참조
-2. 500줄 이상 파일 전체 분석 → Gemini 오프로드
-3. scout가 요약 spec JSON 생성 → patcher는 spec만 읽음
-4. `cat` 대신 `Read` 도구 사용
+1. Large XML/JSON responses → save to file, reference path only
+2. Files over 500 lines (full analysis) → offload to Gemini
+3. Scout produces summarized spec JSON → patcher reads spec only
+4. Use `Read` tool instead of `cat`
 
 ---
 
 ## MCP
 
-Mac Desktop 전용. Web Claude Code / Codespaces 미지원.
+Mac Desktop only. Not supported in Web Claude Code or Codespaces.
 
-설정 필요 시: `~/.claude/scripts/setup-mcp.sh --list`
+To configure: `~/.claude/scripts/setup-mcp.sh --list`
