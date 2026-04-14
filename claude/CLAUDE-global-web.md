@@ -1,157 +1,110 @@
-# Global Rules — Web Claude Code / Codespaces
+# CLAUDE-global-web.md
+> ⚠️ Top priority. Overrides all other CLAUDE.md on conflict.
+> Environment: Web Claude Code / Codespaces. No LM Studio, No MCP, Gemini via API only.
 
-> **Environment**: Web Claude Code (claude.ai/code) or GitHub Codespaces
-> **Fork source**: CLAUDE-global.md (Mac Mini CLI version)
-> **Key differences**: No LM Studio, No MCP, Gemini via API only
-
----
-
-## Behavior
-
-| Rule | Description |
-|------|-------------|
-| Ask First | At session start, ask what to do. Do NOT auto-start analysis or implementation. |
-| Plan Approval | Output plan and wait for approval. **Never write code without explicit approval.** |
-| No Stalling | If blocked, STOP immediately and replan. Do not push through. |
-| Verify Before Done | Never mark complete without passing the verification routine below. |
-| Full Scope | Before any change, list all affected files. Handle them together. |
-| Self-Improvement | After a correction, identify the pattern and root cause. |
-| Task Plan | Before starting work, write a checklist-style plan. Check off as you go. |
+Polite language. Date/time needed → no guessing, run `date '+%F(%a) %T'` first.
 
 ---
 
-## Verification Routine (Verify Before Done)
+## §1 Workflow [TOP PRIORITY]
 
-Before marking any task complete, **must** confirm actual execution results. Syntax checks and code review are NOT verification.
+| # | Rule | Definition |
+|---|------|-----------|
+| 1 | Ask First | At session start, ask what to do. No auto-start. |
+| 2 | Plan Approval | Output plan, wait for approval. **Never write code without explicit approval.** |
+| 3 | No Stalling | Blocked → STOP, replan. No pushing through. |
+| 4 | Verify | §1-V verification routine must pass before marking complete. **No exceptions.** |
+| 5 | Full Scope | List all affected files before changes. Handle together. |
+| 6 | Self-Improve | After correction, identify pattern and root cause. |
+| 7 | Task Plan | Write checklist plan before work. Check off as you go. |
 
-| Environment | Verification Method |
-|-------------|-------------------|
-| GitHub Actions | `gh workflow run` → `gh run watch` → check logs for actual behavior |
-| Railway / Server | Deploy → `curl` or logs to confirm response/behavior |
-| Vercel / Frontend | Deploy → browser check: golden path + edge cases |
-| CLI Script | Actually run it, check stdout/stderr |
-| API Changes | Send real request, confirm response |
-| Cron / Schedule | Dry-run or manual trigger, confirm 1 execution |
+### §1-V Verification Routine
 
-**else/fallback/error paths are also verification targets.** Never complete after checking only the happy path.
+Syntax check / code review ≠ verification. **Actual execution results** required.
 
----
+| Environment | Method |
+|-------------|--------|
+| GH Actions | `gh workflow run` → `gh run watch` → check logs |
+| Railway/Server | Deploy → curl or logs |
+| Vercel/FE | Deploy → browser golden + edge cases |
+| CLI | Run it → stdout/stderr |
+| API | Real request → confirm response |
+| cron | Dry-run or manual trigger 1x |
 
-## Code Principles
-
-| Principle | Description |
-|-----------|-------------|
-| Simplicity First | Minimum code, minimum blast radius. |
-| No Laziness | Find root cause. No temporary patches. |
-| No New Patterns | Check existing patterns and helpers before adding new ones. |
-| Elegance Check | For non-obvious changes, do one pass asking "is there a cleaner way?" |
-
----
-
-## LLM Routing (harness only)
-
-Applies only when running `/harness`, `/harness-run`, `/harness-check`.
-Normal conversation and coding → Claude handles directly.
-
-| Tier | Tool | Purpose | Web |
-|---|---|---|---|
-| 1 | Claude (Sonnet) | Planning, orchestration, code, judgment | ✅ default |
-| 2 | Gemini API | Large codebase full analysis | ✅ via curl/script |
-| 3 | LM Studio | Simple repetitive tasks | ❌ Mac Mini only |
-
-### Tier 2 → Gemini API
-
-In Web Claude Code, call directly from Bash instead of `gemini-analyzer` subagent:
-
-```bash
-# Requires GEMINI_API_KEY env var
-~/.claude/scripts/gemini-ask.sh "content to analyze"
-echo "prompt" | ~/.claude/scripts/gemini-ask.sh --flash
-```
-
-Or via subagent:
-```
-Agent(subagent_type="gemini-analyzer", prompt="...")
-```
-
-### Tier 3 → Falls back to Claude
-
-Tier 3 not available in Web → Claude (Tier 1) handles directly.
-Commit messages also written directly by Claude.
+**else/fallback/error paths are verification targets. Happy path only → not complete.**
 
 ---
 
-## Commit Messages
+## §2 Code
 
-Web/Codespace: Claude writes directly using these rules:
+Min code, min blast radius | Root cause only (no temp patches) | Existing patterns first | Non-obvious change → "better way?" 1x
 
-- First line: `type: short summary` (max 72 chars, English)
-- Types: `feat` / `fix` / `chore` / `refactor` / `docs`
-- Always include Co-Authored-By line
-
----
-
-## MCP
-
-Not supported in Web Claude Code.
-
-- If MCP setup is needed, refer to `~/.claude/scripts/setup-mcp.sh` (Mac Desktop only)
-- Design all work to function without MCP in Web environments
+- `grep` all → fix at once. No file-by-file discovery
+- Config change → enumerate all affected cases first
+- Package add → delete lock, regenerate, commit
+- 3x guess-fix fails → switch approach, write repro script first
 
 ---
 
-## Harness Pattern (works in Web)
+## §3 Debugging
 
-Plan-Do-Review works in Web:
-- scout: `local-explorer` or `Explore` subagent
-- patcher: Claude direct (Tier 1)
-- verifier: `Explore` + Bash
+**API error → never blame server. Check own config first:**
+1. env vars match (railway variables vs local)
+2. Token validity (DB cache, expiry, secret match)
+3. Parameters (official spec comparison)
+4. All 3 clear → then suspect server
 
-Harness templates: `~/.claude/harness_templates/` (local) or fetch from dotfiles repo.
+"App works + API fails" → 100% my problem. User-confirmed facts → trust, find my bug first.
 
----
-
-## Token Efficiency
-
-1. **Prevent context pollution**: Save large XML/JSON responses to file, reference path only
-2. **Gemini offload**: Files over 500 lines (full analysis) → Gemini API
-3. **Harness separation**: Scout generates summarized spec JSON → patcher reads spec only
-4. **Use Read tool**: Prefer `Read` over `cat` (better context efficiency)
-
----
-
-## Notes Storage
-
-GitHub dotfiles repo as single source of truth:
-
-```bash
-# fetch latest global rules
-curl -sL https://raw.githubusercontent.com/Seeuferil/dotfiles/main/claude/CLAUDE-global-web.md
-```
-
-Obsidian vault (local) ↔ dotfiles repo (remote) sync: Mac Mini only.
+| Symptom | Response |
+|---------|----------|
+| stdout hang | File log (`buffering=1`). Don't trust print |
+| bg process hang | `< /dev/null` stdin block + file log |
+| hang location unknown | 10-step file log → after last log = hang point |
+| UTC date mismatch | `datetime.now(KST)` required. DB: KST param, no `CURRENT_DATE` |
 
 ---
 
-## LiveStatus
+## §4 Deploy
 
-`~/.claude/livestatus.md` — auto-updated on Mac Mini.
-In Web: provide current work context manually at session start.
+Pre-deploy checklist → single commit:
+Node version | Build (client+server) | Healthcheck path | Static file resolve | All env vars | Peer deps | PORT binding | Lock file
+
+**Vercel:**
+- Verify: `vercel ls` Age vs push time. Age > gap → auto-deploy not linked
+- CLI: `vercel --prod` only. `vercel deploy --prod` → error
+- No project split: same app pages in separate projects/repos forbidden
+- No UI→bot direct call: cross-region 6s+ → bot→DB write, UI→DB read
+- Next.js 16: `middleware.ts` → `proxy.ts`, export `proxy`
 
 ---
 
-## Lessons Learned (Private)
+## §5 ML/Python
 
-`~/.claude/lessons.md` — fetched from `Seeuferil/claude-private` repo.
-Reusable principles applied across all projects.
+- DataLoader: `num_workers=0` (fork hang)
+- Model save: `.tmp` → `os.replace()` atomic write
+- Pre-train: `np.isnan(X).any()` required
+- MPS large tensor: CPU fallback or warmup small batch
 
-Auto-fetch if missing at session start:
-```bash
-[ ! -f ~/.claude/lessons.md ] && \
-  curl -sf -H "Authorization: token ${GITHUB_TOKEN:-$(gh auth token 2>/dev/null)}" \
-    -H "Accept: application/vnd.github.v3.raw" \
-    "https://api.github.com/repos/Seeuferil/claude-private/contents/claude/lessons.md" \
-    > ~/.claude/lessons.md 2>/dev/null || true
-```
+---
 
-Web Claude Code: `GITHUB_TOKEN` environment variable required.
+## §6 Operations
+
+**Tokens**: Keywords, tables, code only. No prose. No duplication. Long session → new session.
+**Task**: `tasks/todo.md` checklist | `tasks/lessons.md` patterns
+**Subagent**: Large scan → Explore | Independent → parallel
+**LLM Routing**: Tier 1 Claude (default) | Tier 2 Gemini API (`gemini-ask.sh`) | Tier 3 N/A in web
+**DB/API**: db:push batch 1x | no n+1 | prompt ≤200 lines
+
+### Commit Messages
+
+`type: short summary` (≤72 chars, English). Types: feat/fix/chore/refactor/docs. Include Co-Authored-By.
+
+### Session
+
+Start `/rsm` | End `/rsm log`
+Handoff: `Lib/resume-log/<repo>/resume-log-NNNN.md`
+
+### Lessons Learned
+
+→ `~/.claude/lessons.md` (project-specific only. General rules integrated in §2~§5)
