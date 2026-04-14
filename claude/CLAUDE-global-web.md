@@ -13,10 +13,27 @@
 | Ask First | At session start, ask what to do. Do NOT auto-start analysis or implementation. |
 | Plan Approval | Output plan and wait for approval. **Never write code without explicit approval.** |
 | No Stalling | If blocked, STOP immediately and replan. Do not push through. |
-| Verify Before Done | Never mark a task complete without proving it works. |
+| Verify Before Done | Never mark complete without passing the verification routine below. |
 | Full Scope | Before any change, list all affected files. Handle them together. |
 | Self-Improvement | After a correction, identify the pattern and root cause. |
 | Task Plan | Before starting work, write a checklist-style plan. Check off as you go. |
+
+---
+
+## Verification Routine (Verify Before Done)
+
+Before marking any task complete, **must** confirm actual execution results. Syntax checks and code review are NOT verification.
+
+| Environment | Verification Method |
+|-------------|-------------------|
+| GitHub Actions | `gh workflow run` → `gh run watch` → check logs for actual behavior |
+| Railway / Server | Deploy → `curl` or logs to confirm response/behavior |
+| Vercel / Frontend | Deploy → browser check: golden path + edge cases |
+| CLI Script | Actually run it, check stdout/stderr |
+| API Changes | Send real request, confirm response |
+| Cron / Schedule | Dry-run or manual trigger, confirm 1 execution |
+
+**else/fallback/error paths are also verification targets.** Never complete after checking only the happy path.
 
 ---
 
