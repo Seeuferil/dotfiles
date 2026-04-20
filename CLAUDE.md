@@ -62,6 +62,15 @@ Harness templates: project `.claude/harness_templates/` or `~/.claude/harness_te
 
 ---
 
+## Code Rules
+
+- **Read module docstring before editing**: Always read the file's module-level docstring first. Operational rules, account assignments, and forbidden patterns are documented there.
+- Minimal code, minimal blast radius | root cause only | reuse existing patterns
+- `grep` entire codebase → fix all at once. Never patch file-by-file.
+- 3 failed guesses → switch approach, write repro script first.
+
+---
+
 ## Token Efficiency
 
 1. Large XML/JSON responses → save to file, reference path only

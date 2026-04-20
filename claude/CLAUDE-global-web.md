@@ -1,110 +1,159 @@
-# CLAUDE-global-web.md
-> ⚠️ Top priority. Overrides all other CLAUDE.md on conflict.
-> Environment: Web Claude Code / Codespaces. No LM Studio, No MCP, Gemini via API only.
+# Global Rules — Web Claude Code / Codespaces
 
-Polite language. Date/time needed → no guessing, run `date '+%F(%a) %T'` first.
-
----
-
-## §1 Workflow [TOP PRIORITY]
-
-| # | Rule | Definition |
-|---|------|-----------|
-| 1 | Ask First | At session start, ask what to do. No auto-start. |
-| 2 | Plan Approval | Output plan, wait for approval. **Never write code without explicit approval.** |
-| 3 | No Stalling | Blocked → STOP, replan. No pushing through. |
-| 4 | Verify | §1-V verification routine must pass before marking complete. **No exceptions.** |
-| 5 | Full Scope | List all affected files before changes. Handle together. |
-| 6 | Self-Improve | After correction, identify pattern and root cause. |
-| 7 | Task Plan | Write checklist plan before work. Check off as you go. |
-
-### §1-V Verification Routine
-
-Syntax check / code review ≠ verification. **Actual execution results** required.
-
-| Environment | Method |
-|-------------|--------|
-| GH Actions | `gh workflow run` → `gh run watch` → check logs |
-| Railway/Server | Deploy → curl or logs |
-| Vercel/FE | Deploy → browser golden + edge cases |
-| CLI | Run it → stdout/stderr |
-| API | Real request → confirm response |
-| cron | Dry-run or manual trigger 1x |
-
-**else/fallback/error paths are verification targets. Happy path only → not complete.**
+> **Environment**: Web Claude Code (claude.ai/code) or GitHub Codespaces
+> **Fork source**: CLAUDE-global.md (Mac Mini CLI version)
+> **Key differences**: No LM Studio, No MCP, Gemini via API only
 
 ---
 
-## §2 Code
+## LLM 라우팅 (하네스 전용)
 
-Min code, min blast radius | Root cause only (no temp patches) | Existing patterns first | Non-obvious change → "better way?" 1x
+하네스(`/harness`, `/harness-run`, `/harness-check`) 실행 시에만 적용.
+일반 대화·코딩은 Claude가 직접 처리.
 
-- `grep` all → fix at once. No file-by-file discovery
-- Config change → enumerate all affected cases first
-- Package add → delete lock, regenerate, commit
-- 3x guess-fix fails → switch approach, write repro script first
+| Tier | Tool | 용도 | Web 환경 |
+|---|---|---|---|
+| 1 | Claude (Sonnet) | 계획·조율·코드 작성·판단 | ✅ 기본 |
+| 2 | Gemini API | 대형 코드베이스 전체 분석 | ✅ curl/script |
+| 3 | LM Studio | 단순 반복 태스크 | ❌ Mac Mini 전용 |
 
----
+### Tier 2 → Gemini API
 
-## §3 Debugging
+Web Claude Code에서는 `gemini-analyzer` subagent 대신 Bash에서 직접 호출:
 
-**API error → never blame server. Check own config first:**
-1. env vars match (railway variables vs local)
-2. Token validity (DB cache, expiry, secret match)
-3. Parameters (official spec comparison)
-4. All 3 clear → then suspect server
+```bash
+# GEMINI_API_KEY 환경변수 필요
+~/.claude/scripts/gemini-ask.sh "분석할 내용"
+echo "프롬프트" | ~/.claude/scripts/gemini-ask.sh --flash
+```
 
-"App works + API fails" → 100% my problem. User-confirmed facts → trust, find my bug first.
+또는 subagent로:
+```
+Agent(subagent_type="gemini-analyzer", prompt="...")
+```
 
-| Symptom | Response |
-|---------|----------|
-| stdout hang | File log (`buffering=1`). Don't trust print |
-| bg process hang | `< /dev/null` stdin block + file log |
-| hang location unknown | 10-step file log → after last log = hang point |
-| UTC date mismatch | `datetime.now(KST)` required. DB: KST param, no `CURRENT_DATE` |
+### Tier 3 → Fallback to Claude
 
----
-
-## §4 Deploy
-
-Pre-deploy checklist → single commit:
-Node version | Build (client+server) | Healthcheck path | Static file resolve | All env vars | Peer deps | PORT binding | Lock file
-
-**Vercel:**
-- Verify: `vercel ls` Age vs push time. Age > gap → auto-deploy not linked
-- CLI: `vercel --prod` only. `vercel deploy --prod` → error
-- No project split: same app pages in separate projects/repos forbidden
-- No UI→bot direct call: cross-region 6s+ → bot→DB write, UI→DB read
-- Next.js 16: `middleware.ts` → `proxy.ts`, export `proxy`
+Web 환경에서 Tier 3 불가 → Tier 1(Claude)이 직접 처리.
+커밋 메시지도 Claude가 직접 작성.
 
 ---
 
-## §5 ML/Python
+## 커밋 메시지
 
-- DataLoader: `num_workers=0` (fork hang)
-- Model save: `.tmp` → `os.replace()` atomic write
-- Pre-train: `np.isnan(X).any()` required
-- MPS large tensor: CPU fallback or warmup small batch
+Mac Mini에서는 Tier 3 스크립트 우선.
+Web/Codespace에서는 Claude가 직접 작성 (아래 규칙 적용):
+
+- First line: `type: short summary` (max 72 chars, English)
+- Type: `feat` / `fix` / `chore` / `refactor` / `docs`
+- Co-Authored-By 라인 포함
 
 ---
 
-## §6 Operations
+## MCP
 
-**Tokens**: Keywords, tables, code only. No prose. No duplication. Long session → new session.
-**Task**: `tasks/todo.md` checklist | `tasks/lessons.md` patterns
-**Subagent**: Large scan → Explore | Independent → parallel
-**LLM Routing**: Tier 1 Claude (default) | Tier 2 Gemini API (`gemini-ask.sh`) | Tier 3 N/A in web
-**DB/API**: db:push batch 1x | no n+1 | prompt ≤200 lines
+Web Claude Code는 MCP를 지원하지 않음.
 
-### Commit Messages
+- MCP 설정이 필요하면 `~/.claude/scripts/setup-mcp.sh` 참조 (Mac Desktop 전용)
+- Web 환경에서는 MCP 없이 작업 설계할 것
 
-`type: short summary` (≤72 chars, English). Types: feat/fix/chore/refactor/docs. Include Co-Authored-By.
+---
 
-### Session
+## 하네스 패턴 (Web 환경 적용 가능)
 
-Start `/rsm` | End `/rsm log`
-Handoff: `Lib/resume-log/<repo>/resume-log-NNNN.md`
+Plan-Do-Review 패턴은 Web 환경에서도 동작:
+- scout: `local-explorer` or `Explore` subagent
+- patcher: Claude 직접 (Tier 1)
+- verifier: `Explore` + Bash
 
-### Lessons Learned
+하네스 템플릿: `~/.claude/harness_templates/` (로컬) 또는 dotfiles repo에서 fetch.
 
-→ `~/.claude/lessons.md` (project-specific only. General rules integrated in §2~§5)
+---
+
+## Vault-Mirror (Web/Codespace용 프로젝트 지식베이스)
+
+Mac Mini의 Obsidian vault를 대체하는 **read-only snapshot**. `claude-private` repo 안에 미러됨.
+
+### Bootstrap
+
+```bash
+# 세션 시작 시 자동 fetch (gh auth 필요)
+MIRROR=/tmp/claude-private/vault-mirror
+if [ ! -d "$MIRROR" ]; then
+  gh repo clone Seeuferil/claude-private /tmp/claude-private -- --depth 1
+fi
+```
+
+### 사용법
+
+프로젝트 구조·스택·인프라 조회 시 **vault-mirror 먼저** 읽고, 파일 탐색은 그 다음:
+
+```
+$MIRROR/index.yaml                  ← L0 quick lookup (~200 tokens)
+$MIRROR/infra-map.md                ← GitHub × Railway × Vercel 연결맵
+$MIRROR/projects/claude-projects.md ← 전 프로젝트 현황 테이블
+$MIRROR/projects/*-summary.md       ← 프로젝트별 compact 요약
+$MIRROR/system/*-summary.md         ← 시스템 문서 요약
+```
+
+### 규칙
+
+- **Read-only**: Web에서 mirror 파일 수정 금지. Mac 복귀 후 vault에서 수정.
+- **Vault-first**: 프로젝트 정보가 필요하면 index.yaml → summary → 실제 파일 탐색 순서.
+- **Sync**: Mac `/rsml` 실행 시 자동 갱신. `index.yaml` 헤더의 `Updated:` 날짜로 최신성 확인.
+
+---
+
+## 노트 / 설정 저장소
+
+GitHub dotfiles repo를 단일 소스로 사용:
+
+```bash
+# fetch latest global rules
+curl -sL https://raw.githubusercontent.com/Seeuferil/dotfiles/main/claude/CLAUDE-global-web.md
+```
+
+Obsidian vault (로컬) ↔ vault-mirror (claude-private) 동기화는 Mac Mini에서만 수행.
+
+---
+
+## 코드 규칙
+
+- **모듈 작업 전 docstring 필독**: 파일 수정 전 반드시 module-level docstring 먼저 읽을 것. 운영 규칙·계정 구분·금지 패턴이 거기 명기됨.
+- 최소코드·최소영향 | 근본원인만 | 기존패턴 우선
+- `grep` 전체 → 한 번에 처리. 파일별 개별 수정 금지
+- 추측 수정 3회 실패 → 접근법 전환
+
+---
+
+## 토큰 절약 규칙
+
+1. **컨텍스트 오염 방지**: 대용량 XML/JSON 응답은 파일에 저장 후 경로만 참조
+2. **Gemini 오프로드**: 500줄 이상 파일 전체 분석 → Gemini API
+3. **하네스 분리**: scout가 요약된 spec JSON 생성 → patcher는 spec만 읽음
+4. **Read 도구 우선**: Bash cat 대신 Read 사용 (컨텍스트 효율 높음)
+
+---
+
+## LiveStatus
+
+`~/.claude/livestatus.md` — Mac Mini에서 자동 갱신.
+Web 환경에서는 세션 시작 시 수동으로 현재 작업 컨텍스트 제공.
+
+---
+
+## Lessons Learned (Private)
+
+`~/.claude/lessons.md` — `Seeuferil/claude-private` repo에서 fetch.
+모든 프로젝트에 적용되는 재사용 가능한 원칙.
+
+세션 시작 시 파일이 없으면 fetch:
+```bash
+[ ! -f ~/.claude/lessons.md ] && \
+  curl -sf -H "Authorization: token ${GITHUB_TOKEN:-$(gh auth token 2>/dev/null)}" \
+    -H "Accept: application/vnd.github.v3.raw" \
+    "https://api.github.com/repos/Seeuferil/claude-private/contents/claude/lessons.md" \
+    > ~/.claude/lessons.md 2>/dev/null || true
+```
+
+Web Claude Code: `GITHUB_TOKEN` 환경변수 설정 필요.
