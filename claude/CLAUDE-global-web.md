@@ -1,8 +1,32 @@
 # Global Rules — Web Claude Code / Codespaces
 
 > **Environment**: Web Claude Code (claude.ai/code) or GitHub Codespaces
-> **Fork source**: CLAUDE-global.md (Mac Mini CLI version)
+> **Fork source**: vault/CLAUDE-global.md (Mac Mini CLI version)
 > **Key differences**: No LM Studio, No MCP, Gemini via API only
+
+<!-- IMPORTANT — agents loading this file:
+  This file is the public LANDING version of global rules. Real implementation details
+  (full skill definitions, scripts, hooks, lessons.md, settings) live in:
+
+    claude-private/vault-mirror/  ← private GitHub mirror, gh auth required
+      ├── skills/    (full SKILL.md for each command)
+      ├── scripts/   (rsml/gsync/vault_sync/inventory etc.)
+      ├── hooks/     (SessionStart, UserPromptSubmit hooks)
+      ├── system/    (CLAUDE.md, lessons.md, livestatus.md, settings.json,
+      │              architecture.md, vault-sync.md, vault-structure.md, etc.)
+      └── projects/CLAUDE-sub/ (per-project sub-rules)
+
+  Fetch flow (web/codespaces):
+    gh repo clone Seeuferil/claude-private /tmp/claude-private -- --depth 1
+    Then read from /tmp/claude-private/vault-mirror/
+
+  Frequently-forgotten critical rules (always apply, even if not in main body):
+  - vault is single source of truth. Don't edit mirror or dotfiles directly — they're regenerated.
+  - Plan before coding. No code changes without explicit user approval (§-1 Core Rule #1).
+  - Verify with actual execution, not syntax check (§1-V Verification Routine).
+  - All ~/.claude rules/configs/skills/scripts/hooks must mirror to vault. Sync runs in /rsml -full.
+  - Secrets (.credentials.json, *.env) are NEVER mirrored. Stored in *.env-vault separately.
+-->
 
 ---
 
