@@ -6,6 +6,17 @@
 
 ---
 
+## Four Principles
+
+| 원칙 | 정의 | 구현 위치 |
+|---|---|---|
+| 1. Think Before Coding | 가정·혼란 명시. 트레이드오프 제시. 막히면 stop+질문 | (직접 적용) |
+| 2. Simplicity First | 최소 코드. 사변적 추상화·미사용 에러처리 금지 | Code Rules |
+| 3. Surgical Changes | 요청 외 코드·주석·포맷 손대지 않음. 변경한 줄은 요청에 직결 | Code Rules |
+| 4. Goal-Driven Execution | 검증 가능한 성공조건 정의. 통과까지 루프 | Harness Pattern (verifier) |
+
+---
+
 ## LLM 라우팅 (하네스 전용)
 
 하네스(`/harness`, `/harness-run`, `/harness-check`) 실행 시에만 적용.
